@@ -179,8 +179,9 @@ async def handle_baileys_webhook(json_data: dict) -> dict:
                 await baileys_service.send_whatsapp_reply(
                     to_phone=incoming.phone,
                     body=(
-                        "I apologize, but I'm experiencing a temporary issue. "
-                        "Please try again in a moment, or reach out to us at "
+                        "Oops! I'm having a little bit of trouble connecting right now. 😅 "
+                        "Could you please try sending your message again in a moment? "
+                        "If it's urgent, you can also reach our team directly at "
                         "support@pp5mediasolutions.com or WhatsApp +91 99593 94534."
                     ),
                 )
