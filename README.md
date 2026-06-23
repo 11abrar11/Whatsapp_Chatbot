@@ -4,14 +4,7 @@ A production-ready WhatsApp chatbot for **PP5 Media Solutions** that answers com
 
 ## Architecture
 
-```
-WhatsApp User → Baileys (WhatsApp Web) → FastAPI Backend
-                                                ├── Qdrant (RAG search)
-                                                ├── Groq (LLM - Llama 3)
-                                                ├── Gemini (Embeddings)
-                                                ├── Google Sheets (Lead storage)
-                                                └── Gmail SMTP (Escalation)
-```
+![PP5 WhatsApp AI Chatbot Architecture](docs/architecture_diagram.png)
 
 ## Features
 
