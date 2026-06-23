@@ -1,0 +1,15 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY ingestion/requirements.txt ./ingestion/
+RUN pip install --no-cache-dir -r ingestion/requirements.txt
+
+# Copy application code
+COPY ingestion/ ./ingestion/
+COPY knowledge_base/ ./knowledge_base/
+COPY config/ ./config/
+
+# Run the ingestion pipeline
+CMD ["python", "-m", "ingestion.run_ingestion"]

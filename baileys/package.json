@@ -1,0 +1,16 @@
+{
+  "name": "pp5-baileys-whatsapp",
+  "version": "1.0.0",
+  "description": "WhatsApp connection layer using Baileys for PP5 Chatbot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.16",
+    "express": "^4.21.0",
+    "pino": "^9.6.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

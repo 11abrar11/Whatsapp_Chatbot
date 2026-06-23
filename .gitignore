@@ -1,0 +1,48 @@
+# Environment & Secrets
+config/.env
+config/service_account.json
+.env
+passwords/
+
+# Baileys (WhatsApp session & Node modules)
+baileys/auth_info/
+baileys/node_modules/
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+
+# n8n
+.n8n/
+
+# Qdrant local storage
+qdrant_storage/
+
+# Docker
+docker/qdrant_storage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Original files (moved to knowledge_base/)
+website_content.docx

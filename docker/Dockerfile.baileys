@@ -1,0 +1,14 @@
+FROM node:20-slim
+
+WORKDIR /app/baileys
+
+# Copy package files and install dependencies
+COPY baileys/package.json baileys/package-lock.json* ./
+RUN npm ci --production
+
+# Copy Baileys source
+COPY baileys/index.js ./
+
+EXPOSE 3001
+
+CMD ["node", "index.js"]
