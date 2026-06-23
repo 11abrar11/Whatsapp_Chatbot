@@ -104,7 +104,6 @@ async def handle_baileys_webhook(json_data: dict) -> dict:
         )
         logger.info(
             f"LLM response — Reply: {chatbot_response.reply[:60]}..., "
-            f"Score: {chatbot_response.lead_score}, "
             f"Escalation: {chatbot_response.escalation_required}"
         )
 
@@ -113,13 +112,15 @@ async def handle_baileys_webhook(json_data: dict) -> dict:
 
         # === Step 7: Update Google Sheet ===
         logger.info("STEP 7: Updating Google Sheet")
+        final_score = 0
+        final_status = "Cold"
         try:
             # Merge profile name into lead_update if available
             lead_update = chatbot_response.lead_update.copy()
             if incoming.profile_name and not lead_update.get("name"):
                 lead_update["name"] = incoming.profile_name
 
-            sheets_service.update_or_create_lead(
+            final_score, final_status = sheets_service.update_or_create_lead(
                 phone=incoming.phone,
                 lead_update=lead_update,
                 chatbot_response=chatbot_response,
@@ -147,8 +148,8 @@ async def handle_baileys_webhook(json_data: dict) -> dict:
                 await gmail_service.send_escalation_email(
                     phone=incoming.phone,
                     user_message=incoming.message,
-                    lead_score=chatbot_response.lead_score,
-                    lead_status=chatbot_response.lead_status,
+                    lead_score=final_score,
+                    lead_status=final_status,
                     summary=chatbot_response.summary,
                 )
                 logger.info("Escalation email sent")
@@ -163,8 +164,8 @@ async def handle_baileys_webhook(json_data: dict) -> dict:
         return {
             "status": "success",
             "phone": incoming.phone,
-            "lead_score": chatbot_response.lead_score,
-            "lead_status": chatbot_response.lead_status,
+            "lead_score": final_score,
+            "lead_status": final_status,
             "escalated": chatbot_response.escalation_required,
         }
 

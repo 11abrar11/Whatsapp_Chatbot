@@ -23,18 +23,6 @@ class ChatbotResponse(BaseModel):
         default_factory=list,
         description="List of lead fields still missing",
     )
-    lead_score: int = Field(
-        default=0,
-        ge=0,
-        le=100,
-        description="Lead score from 0-100",
-    )
-    lead_status: Literal[
-        "Cold", "Warm", "Hot", "Qualified", "Not Interested"
-    ] = Field(
-        default="Cold",
-        description="Current lead status classification",
-    )
     conversation_stage: Literal[
         "New", "Discovering", "Qualifying", "Qualified", "Escalated", "Closed"
     ] = Field(

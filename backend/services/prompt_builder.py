@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Cache loaded prompts
 _system_prompt_cache: Optional[str] = None
-_scoring_prompt_cache: Optional[str] = None
 
 
 def _load_prompt_file(filename: str) -> str:
@@ -45,12 +44,6 @@ def get_system_prompt() -> str:
     return _system_prompt_cache
 
 
-def get_scoring_prompt() -> str:
-    """Load and cache the lead scoring prompt."""
-    global _scoring_prompt_cache
-    if _scoring_prompt_cache is None:
-        _scoring_prompt_cache = _load_prompt_file("lead_scoring_prompt.txt")
-    return _scoring_prompt_cache
 
 
 def _format_context_chunks(chunks: list[dict]) -> str:
@@ -170,7 +163,6 @@ def build_prompt(
         Complete system prompt string
     """
     system_prompt = get_system_prompt()
-    scoring_prompt = get_scoring_prompt()
     context_text = _format_context_chunks(context_chunks)
     lead_text = _format_lead_data(lead_data)
     missing_fields = _compute_missing_fields(lead_data)
@@ -188,10 +180,6 @@ IMPORTANT: Use the conversation history above to maintain context. Do NOT repeat
 
     # Assemble the complete prompt
     full_prompt = f"""{system_prompt}
-
----
-
-{scoring_prompt}
 
 ---
 
@@ -215,14 +203,11 @@ You MUST respond with ONLY a valid JSON object. No text before or after.
   "reply": "Your WhatsApp response message to the user",
   "lead_update": {{"field_name": "value"}},
   "missing_information": ["field1", "field2"],
-  "lead_score": 0,
-  "lead_status": "Cold",
   "conversation_stage": "New",
   "summary": "Updated summary of this lead",
   "escalation_required": false
 }}
 
-Valid lead_status values: Cold, Warm, Hot, Qualified, Not Interested
 Valid conversation_stage values: New, Discovering, Qualifying, Qualified, Escalated, Closed
 """
 

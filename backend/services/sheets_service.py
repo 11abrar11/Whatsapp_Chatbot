@@ -133,39 +133,41 @@ def lookup_lead(phone: str) -> Optional[LeadData]:
         return None
 
 
-def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bool:
+def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> tuple[int, str]:
     """
     Update an existing lead row or create a new one.
-    
-    Args:
-        phone: Phone number (primary key)
-        lead_update: Dict of field values to update from LLM response
-        chatbot_response: The full ChatbotResponse object
+    Calculates the cumulative lead score natively.
     
     Returns:
-        True if successful, False otherwise
+        (final_score, final_status)
     """
     try:
         worksheet = _get_worksheet()
         ist_tz = timezone(timedelta(hours=5, minutes=30))
         timestamp = datetime.now(ist_tz).strftime("%Y-%m-%d %H:%M:%S IST")
 
-        # Determine the correct lead_status (must always be score-based, never "Escalated")
-        lead_status = chatbot_response.lead_status
-        if lead_status == "Escalated":
-            # LLM incorrectly set status to "Escalated" — fall back to score-based classification
-            score = chatbot_response.lead_score
-            if score >= 70:
-                lead_status = "Hot"
-            elif score >= 40:
-                lead_status = "Warm"
-            else:
-                lead_status = "Cold"
+        # Check if lead exists to get the previous score
+        cell = worksheet.find(phone, in_column=1)
+        existing_values = []
+        previous_score = 0
+        
+        if cell is not None:
+            existing_row = cell.row
+            existing_values = worksheet.row_values(existing_row)
+            while len(existing_values) < len(SHEET_HEADERS):
+                existing_values.append("")
+                
+            try:
+                if existing_values[10]:  # Column K is Lead Score
+                    previous_score = int(existing_values[10])
+            except ValueError:
+                pass
 
-        # Build the row data
-        row_data = {
-            "Phone": phone,
-            "Name": lead_update.get("name", ""),
+        # Natively Calculate new score additions
+        new_score = 0
+        
+        # Merge existing data with new updates to check populated fields
+        merged_data = {
             "Business": lead_update.get("business", ""),
             "Industry": lead_update.get("industry", ""),
             "Requirement": lead_update.get("requirement", ""),
@@ -174,8 +176,59 @@ def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bo
             "Budget": lead_update.get("budget", ""),
             "Timeline": lead_update.get("timeline", ""),
             "Decision Maker": lead_update.get("decision_maker", ""),
-            "Lead Score": str(chatbot_response.lead_score),
-            "Lead Status": lead_status,
+        }
+        
+        if cell is not None:
+            # Overwrite with existing data if new update is empty
+            for i, header in enumerate(SHEET_HEADERS):
+                if header in merged_data:
+                    new_val = merged_data[header]
+                    if not new_val and i < len(existing_values):
+                        merged_data[header] = existing_values[i]
+
+        # Scoring Logic
+        if merged_data.get("Business") or merged_data.get("Industry"):
+            new_score += 15
+        if merged_data.get("Requirement"):
+            new_score += 15
+        if merged_data.get("Budget") and merged_data.get("Budget").lower() != "not disclosed":
+            new_score += 10
+        if merged_data.get("Timeline"):
+            new_score += 10
+        if merged_data.get("Decision Maker"):
+            new_score += 10
+        if merged_data.get("Company Size"):
+            new_score += 5
+        if merged_data.get("Monthly Leads"):
+            new_score += 10
+            
+        if chatbot_response.escalation_required:
+            new_score += 25  # Strong buying intent / manual escalation
+
+        final_score = max(previous_score, new_score)
+
+        # Status Logic
+        if final_score >= 70:
+            final_status = "Hot"
+        elif final_score >= 40:
+            final_status = "Warm"
+        else:
+            final_status = "Cold"
+
+        # Build the row data
+        row_data = {
+            "Phone": phone,
+            "Name": lead_update.get("name", ""),
+            "Business": merged_data["Business"],
+            "Industry": merged_data["Industry"],
+            "Requirement": merged_data["Requirement"],
+            "Monthly Leads": merged_data["Monthly Leads"],
+            "Company Size": merged_data["Company Size"],
+            "Budget": merged_data["Budget"],
+            "Timeline": merged_data["Timeline"],
+            "Decision Maker": merged_data["Decision Maker"],
+            "Lead Score": str(final_score),
+            "Lead Status": final_status,
             "Conversation Stage": chatbot_response.conversation_stage,
             "Missing Information": ", ".join(chatbot_response.missing_information),
             "Summary": chatbot_response.summary,
@@ -183,40 +236,13 @@ def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bo
             "Last Updated": timestamp,
         }
 
-        # Check if lead exists (find() returns None in gspread 6.x)
-        cell = worksheet.find(phone, in_column=1)
-
         if cell is not None:
-            # Lead exists — merge with existing data
-            existing_row = cell.row
-            existing_values = worksheet.row_values(existing_row)
-            while len(existing_values) < len(SHEET_HEADERS):
-                existing_values.append("")
-
-            # Enforce Cumulative Lead Scoring in the backend
-            previous_score = 0
-            try:
-                if existing_values[10]:  # Column K is Lead Score
-                    previous_score = int(existing_values[10])
-            except ValueError:
-                pass
-            
-            final_score = max(previous_score, chatbot_response.lead_score)
-            row_data["Lead Score"] = str(final_score)
-
-            # Re-evaluate lead status based on the final_score if it was fallback-calculated
-            if final_score >= 70:
-                row_data["Lead Status"] = "Hot"
-            elif final_score >= 40:
-                row_data["Lead Status"] = "Warm"
-            else:
-                row_data["Lead Status"] = "Cold"
-
-            # Only overwrite non-empty new values
+            # Only overwrite non-empty new values for remaining fields
             for i, header in enumerate(SHEET_HEADERS):
-                new_value = row_data.get(header, "")
-                if not new_value and i < len(existing_values):
-                    row_data[header] = existing_values[i]
+                if header not in merged_data:
+                    new_value = row_data.get(header, "")
+                    if not new_value and i < len(existing_values):
+                        row_data[header] = existing_values[i]
 
             # Update the existing row
             row_list = [row_data.get(h, "") for h in SHEET_HEADERS]
@@ -231,11 +257,11 @@ def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bo
             worksheet.append_row(row_list)
             logger.info(f"Created new lead row for {phone}")
 
-        return True
+        return final_score, final_status
 
     except Exception as e:
         logger.error(f"Failed to update/create lead for {phone}: {e}")
-        return False
+        return 0, "Cold"
 
 
 def _col_letter(col_num: int) -> str:
