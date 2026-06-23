@@ -135,8 +135,6 @@ async def generate_response(
                 response = _validate_response(parsed)
                 logger.info(
                     f"LLM response validated (model={model}) — "
-                    f"score={response.lead_score}, "
-                    f"status={response.lead_status}, "
                     f"escalation={response.escalation_required}"
                 )
                 return response
@@ -180,14 +178,13 @@ async def generate_response(
     logger.error(f"All LLM attempts failed. Last error: {last_error}")
     return ChatbotResponse(
         reply=(
-            "I apologize, but I'm experiencing a temporary issue. "
-            "Please try again in a moment, or reach out to us directly at "
+            "Oops! I'm having a little bit of trouble connecting right now. 😅 "
+            "Could you please try sending your message again in a moment? "
+            "If it's urgent, you can also reach our team directly at "
             "support@pp5mediasolutions.com or WhatsApp +91 99593 94534."
         ),
         lead_update={},
         missing_information=[],
-        lead_score=0,
-        lead_status="Cold",
         conversation_stage="New",
         summary="LLM response error — fallback message sent",
         escalation_required=False,
