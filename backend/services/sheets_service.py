@@ -193,6 +193,25 @@ def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bo
             while len(existing_values) < len(SHEET_HEADERS):
                 existing_values.append("")
 
+            # Enforce Cumulative Lead Scoring in the backend
+            previous_score = 0
+            try:
+                if existing_values[10]:  # Column K is Lead Score
+                    previous_score = int(existing_values[10])
+            except ValueError:
+                pass
+            
+            final_score = max(previous_score, chatbot_response.lead_score)
+            row_data["Lead Score"] = str(final_score)
+
+            # Re-evaluate lead status based on the final_score if it was fallback-calculated
+            if final_score >= 70:
+                row_data["Lead Status"] = "Hot"
+            elif final_score >= 40:
+                row_data["Lead Status"] = "Warm"
+            else:
+                row_data["Lead Status"] = "Cold"
+
             # Only overwrite non-empty new values
             for i, header in enumerate(SHEET_HEADERS):
                 new_value = row_data.get(header, "")
@@ -205,7 +224,7 @@ def update_or_create_lead(phone: str, lead_update: dict, chatbot_response) -> bo
                 f"A{existing_row}:{_col_letter(len(SHEET_HEADERS))}{existing_row}",
                 [row_list],
             )
-            logger.info(f"Updated lead row {existing_row} for {phone}")
+            logger.info(f"Updated lead row {existing_row} for {phone}. Score: {final_score}")
         else:
             # Create new row
             row_list = [row_data.get(h, "") for h in SHEET_HEADERS]
