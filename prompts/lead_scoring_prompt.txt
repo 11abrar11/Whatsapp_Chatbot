@@ -5,6 +5,9 @@ Evaluate ONLY what you know — do not assume or infer missing information.
 
 SCORING FACTORS:
 
+**CRITICAL RULE: CUMULATIVE SCORING**
+If the user already has a Lead Score in the EXISTING LEAD DATA, you MUST use that score as your baseline. NEVER decrease a user's score to 0. Always carry over their previous score and only ADD points if they provide new buying signals.
+
 1. Buying Intent (0-25 points) ← MOST IMPORTANT
    - How interested is the user in actually using PP5's services?
    - 25 = strong intent (e.g., "I need a website built", "let's do this", "I want to get started", "can we set up a meeting?", asking to connect with the team, expressing urgency)
